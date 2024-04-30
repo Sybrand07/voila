@@ -471,8 +471,10 @@
       // Add event listener to handle marker tap
       map.addListener("markerClick", (event) => {
         const marker = event.detail;
-        // Handle marker tap here, e.g., display marker details
-        alert(`Marker clicked: ${marker.title}`);
+        // Get marker details
+        const markerDetails = marker.title;
+        // Show popup with marker details
+        showPopup(markerDetails);
       });
 
       $("#dateSlider").slider({
@@ -618,6 +620,30 @@
       var month = String(date.getMonth() + 1).padStart(2, '0');
       var year = date.getFullYear();
       return day + '/' + month + '/' + year;
+    }
+
+    // Function to show popup with marker details
+    function showPopup(markerDetails) {
+      // Create a popup element
+      const popup = document.createElement("div");
+      popup.className = "marker-popup";
+      // Set the content of the popup
+      popup.innerHTML = `<p>${markerDetails}</p>`;
+      // Add the popup to the body of the document
+      document.body.appendChild(popup);
+      // Position the popup near the tapped marker (adjust position as needed)
+      const markerPosition = map.getProjection().fromLatLngToContainerPixel(marker.getPosition());
+      popup.style.left = markerPosition.x + "px";
+      popup.style.top = markerPosition.y + "px";
+      // Close the popup when clicked outside of it
+      document.addEventListener("click", closePopup);
+      // Function to close the popup
+      function closePopup(event) {
+        if (!popup.contains(event.target)) {
+          document.body.removeChild(popup);
+          document.removeEventListener("click", closePopup);
+        }
+      }
     }
 
     // Initialize the map
