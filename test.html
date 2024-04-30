@@ -460,21 +460,12 @@
 
     async function initMap() {
       // Request needed libraries.
-      const { Map } = await google.maps.importLibrary("maps");
+      const { Map, InfoWindow } = await google.maps.importLibrary("maps");
       const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
       const map = new Map(document.getElementById("map"), {
         center: { lat: 0, lng: 0 },
         zoom: 2,
         mapId: "YOUR_MAP_ID",
-      });
-
-      // Add event listener to handle marker tap
-      map.addListener("markerClick", (event) => {
-        const marker = event.detail;
-        // Get marker details
-        const markerDetails = marker.title;
-        // Show popup with marker details
-        showPopup(markerDetails);
       });
 
       $("#dateSlider").slider({
@@ -488,6 +479,9 @@
       });
       
       var markers = []; // Define markers array
+      
+      // Create an info window to share between markers.
+      const infoWindow = new InfoWindow();
       
       function updateMarkers(sliderValue) {
         
@@ -507,25 +501,41 @@
           }
         });
 
-        // Add new markers for filtered data
+        // Update the code where you create markers to make them clickable and specify a title
         filteredData.forEach(data => {
-          const dataId = data.id; // Get data ID
-          // Check if marker already exists
-          const existingMarker = markers.find(marker => marker.id === dataId);
-          if (!existingMarker) {
-            // Create new marker
-            const pinColor = new Date(data.date) >= selectedDate ? GREEN_COLOR : RED_COLOR;
-            const newMarker = new AdvancedMarkerElement({
-              map,
-              position: { lat: data.lat, lng: data.lng },
-              content: new PinElement({ background: pinColor }).element,
-              title: `${data.place}, ${data.Country}`
-            });
-            // Assign an ID to the marker
-            newMarker.id = dataId;
-            markers.push(newMarker); // Add marker to the markers array
-          }
+            const dataId = data.id; // Get data ID
+            // Check if marker already exists
+            const existingMarker = markers.find(marker => marker.id === dataId);
+            if (!existingMarker) {
+                // Create new marker
+                const pinColor = new Date(data.date) >= selectedDate ? GREEN_COLOR : RED_COLOR;
+                const newMarker = new AdvancedMarkerElement({
+                    map,
+                    position: { lat: data.lat, lng: data.lng },
+                    content: new PinElement({ background: pinColor }).element,
+                    title: `${data.place}, ${data.Country}, ${data.date}`, // Specify a title for the marker
+                    gmpClickable: true, // Make the marker clickable
+                });
+                // Assign an ID to the marker
+                newMarker.id = dataId;
+                markers.push(newMarker); // Add marker to the markers array
+            }
         });
+        
+        // Add click event listeners to each marker
+        markers.forEach(marker => {
+            marker.addListener('click', function(event) {
+                const { domEvent, latLng } = event;
+                const { target } = domEvent;
+
+                infoWindow.close();
+                infoWindow.setContent(marker.title);
+                infoWindow.open(marker.map, marker);
+                
+            });
+        });
+        
+        
       }
 
     
@@ -622,29 +632,9 @@
       return day + '/' + month + '/' + year;
     }
 
-    // Function to show popup with marker details
-    function showPopup(markerDetails) {
-      // Create a popup element
-      const popup = document.createElement("div");
-      popup.className = "marker-popup";
-      // Set the content of the popup
-      popup.innerHTML = `<p>${markerDetails}</p>`;
-      // Add the popup to the body of the document
-      document.body.appendChild(popup);
-      // Position the popup near the tapped marker (adjust position as needed)
-      const markerPosition = map.getProjection().fromLatLngToContainerPixel(marker.getPosition());
-      popup.style.left = markerPosition.x + "px";
-      popup.style.top = markerPosition.y + "px";
-      // Close the popup when clicked outside of it
-      document.addEventListener("click", closePopup);
-      // Function to close the popup
-      function closePopup(event) {
-        if (!popup.contains(event.target)) {
-          document.body.removeChild(popup);
-          document.removeEventListener("click", closePopup);
-        }
-      }
-    }
+  
+    
+    
 
     // Initialize the map
     initMap();
@@ -722,6 +712,9 @@
       background-color: #1f5582; /* Darker blue on hover */
     }
 
+    
+    
+    
     #map {
       height: 800px;
       width: 100%;
